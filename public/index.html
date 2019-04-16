@@ -1,0 +1,101 @@
+<html>
+    <head>
+        <title>Deadline Tracker</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.dev.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+        <script>
+            var socket = io();
+            var roomName = document.location.href.substr(document.location.href.lastIndexOf('=') + 1);
+
+            socket.emit('newConnection', roomName);
+
+            socket.on('newConnection', function(data) {
+                updateGoal(data['goal']);
+                updateCurrentCount(data['currentCount']);
+                for (key in data['workers']) {
+                    addNewWorkerToList(key);
+                    setWorkerCounter(key, data['workers'][key], data['currentCount']);
+                }
+            });
+
+            socket.on('updateGoal', function(goal) {
+                console.log(goal);
+                updateGoal(goal);
+                updateRemaining();
+            });
+
+            socket.on('setWorkerCounter', function(data) {
+                setWorkerCounter(data['worker'], data['count'], data['currentCount']);
+            });
+
+            function updateRemaining() {
+                $('#remaining').html($('#currentgoal').html()-$('#currentCount').html());
+            }
+
+            function updateCurrentCount(count) {
+                $('#currentCount').html(count);
+                updateRemaining()
+            }
+
+            function updateGoal(goal) {
+                $('#currentgoal').html(goal);
+                // updateRemaining();
+            }
+
+            function setGoal() {
+                console.log('setGoal')
+                socket.emit("updateGoal", {'roomID':roomName, 'goal':$("#goalInput").val()})
+            }
+
+            function plusButtonClicked(worker) {
+                socket.emit('addOne', {'roomID':roomName, 'worker':worker});
+            }
+
+            function minusButtonClicked(worker) {
+                socket.emit('minusOne', {'roomID':roomName, 'worker':worker});
+            }
+
+            function setWorkerCounter(worker, count, currentCount) {
+                $('#'+worker+'Counter').html(count);
+                updateCurrentCount(currentCount);
+            }
+
+            function addNewWorkerToList(worker) {
+                var minusButton = "<button onclick='minusButtonClicked(\"" + worker + "\")'>-</button>";
+                var counterInput = "<span id='" + worker + "Counter'>0</span>";
+                var plusButton = "<button onclick='plusButtonClicked(\"" + worker + "\")'>+</button>";
+                var html = "<li>" + worker + ": " + minusButton + counterInput + plusButton + "</li>"
+
+                $('#counters').append(html);
+            }
+
+            socket.on('newWorker', function (worker) {
+                addNewWorkerToList(worker);
+            });
+
+            function addWorker() {
+                socket.emit('newWorker', {'roomID':roomName, 'worker':$("#newWorker").val()});
+            }
+        </script>
+    </head>
+    <body>
+        <div>
+            Set Goal: <input type="text" id="goalInput"/><button onclick="setGoal()">Submit</button><br/>
+            Add Worker:<input type="text" id="newWorker"/><button onclick="addWorker()">Submit</button><br/>
+        </div>
+        <div>
+            <ul id="counters">
+
+            <ul>
+        </div>
+        <div id="">
+            <b>Current Goal: </b><span id="currentgoal">0</span>
+        </div>
+        <div>
+            <b>Current Count: </b><span id="currentCount">0</span>
+        </div>
+        <div>
+            <b>Remaining Today: </b><span id="remaining">0</span>
+        </div>
+    </body>
+</html>
