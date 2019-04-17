@@ -1,0 +1,4 @@
+Goal: 0
+CurrentCount: 1
+NaN
+Bryan: 1

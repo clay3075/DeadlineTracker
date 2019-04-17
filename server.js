@@ -7,9 +7,6 @@ var path = require('path')
 const fs = require('fs');
 
 var rooms = {}
-// var goal = 0;
-// var currentCount = 0;
-// var workers = {}
 
 app.use('/static', express.static(path.join(__dirname, '/public')))
 app.get('/:roomName', function (req, res) {
@@ -25,22 +22,35 @@ io.sockets.on('connection', function (socket) {
   socket.on('newConnection', function(roomID) {
   	socket.join(roomID);
   	console.log('new connection');
-    console.log('rooms:' + rooms);
+    
     if (!rooms.hasOwnProperty(roomID)) {
-      rooms[roomID] = {};
-      rooms[roomID]['goal'] = 0;
-      rooms[roomID]['currentCount'] = 0;
-      rooms[roomID]['workers'] = {}
+      resetRoom(roomID);
     }
-  	
-  	socket.emit('newConnection', {'currentCount':rooms[roomID]['currentCount'], 'goal':rooms[roomID]['goal'], 'workers':rooms[roomID]['workers']});
+  	console.log('rooms:' + Object.keys(rooms));
+  	socket.emit('newConnection', {'currentCount':rooms[roomID]['currentCount'], 'goal':rooms[roomID]['goal'], 'workers':rooms[roomID]['workers'], 'previouscount':rooms[roomID]['previouscount'], 'overallgoal':rooms[roomID]['overallgoal']});
   });
 
+  socket.on('reset', function(room) {
+    resetRoom(roomID);
+    io.in(roomID).emit('resetRoom', roomID);
+  });
   socket.on('updateGoal', function (data) {
     console.log(data);
     roomID = data['roomID'];
-    goal = data['goal'];
-    io.in(roomID).emit("updateGoal", goal);
+    rooms[roomID]['goal'] = data['goal'];
+    io.in(roomID).emit("updateGoal", rooms[roomID]['goal']);
+  });
+  socket.on('updateOverallGoal', function(data) {
+    console.log(data);
+    roomID = data['roomID'];
+    rooms[roomID]['overallgoal'] = data['overallgoal'];
+    io.in(roomID).emit("updateOverallGoal", rooms[roomID]['overallgoal']);
+  });
+  socket.on('updatePreviousCount', function(data) {
+    console.log(data);
+    roomID = data['roomID'];
+    rooms[roomID]['previouscount'] = data['previouscount'];
+    io.in(roomID).emit("updatePreviousCount", rooms[roomID]['previouscount']);
   });
   socket.on('newWorker', function (data) {
   	console.log(data);
@@ -52,30 +62,42 @@ io.sockets.on('connection', function (socket) {
   socket.on('addOne', function(data) {
     var worker = data['worker'];
     var roomID = data['roomID'];
-  	rooms[room]['workers'][worker]++;
-  	currentCount++;
+  	rooms[roomID]['workers'][worker]++;
+  	rooms[roomID]['currentCount']++;
   	saveProgress();
-  	io.in(roomID).emit('setWorkerCounter', {'worker': worker, 'count': rooms[room]['workers'][worker], 'currentCount':rooms[room]['currentCount']});
+  	io.in(roomID).emit('setWorkerCounter', {'worker': worker, 'count': rooms[roomID]['workers'][worker], 'currentCount':rooms[roomID]['currentCount']});
   });
   socket.on('minusOne', function(data) {
     var worker = data['worker'];
     var roomID = data['roomID'];
-  	if(workers[worker] > 0) {
-  		currentCount--;
-  		rooms[room]['workers'][worker]--;
+  	if(rooms[roomID]['workers'][worker] > 0) {
+  		rooms[roomID]['currentCount']--;
+  		rooms[roomID]['workers'][worker]--;
   		saveProgress();
-  		io.in(roomID).emit('setWorkerCounter', {'worker': worker, 'count': rooms[room]['workers'][worker], 'currentCount':rooms[room]['currentCount']});
+  		io.in(roomID).emit('setWorkerCounter', {'worker': worker, 'count': rooms[roomID]['workers'][worker], 'currentCount':rooms[roomID]['currentCount']});
   	}
   })
 });
 
+function resetRoom(roomID) {
+  rooms[roomID] = {};
+  rooms[roomID]['goal'] = 0;
+  rooms[roomID]['overallgoal'] = 0;
+  rooms[roomID]['previouscount'] = 0;
+  rooms[roomID]['currentCount'] = 0;
+  rooms[roomID]['workers'] = {};
+}
+
 function saveProgress() {
   for(room in rooms) {
-    var progress = "Goal: " + rooms[room]['goal'] + "\n";
-    progress += "CurrentCount: " + rooms[room]['currentCount'] + "\n";
-    progress += "Remaining: " + rooms[room]['goal'] - rooms[room]['currentCount'] + "\n";
+    var progress = "Goal: " + rooms[room]['goal'] + ";";
+    progress += "OverallGoal: " + rooms[room]['overallgoal'] + ";";
+    progress += "CurrentCount: " + rooms[room]['currentCount'] + ";";
+    progress += "PreviousCount: " + rooms[room]['previouscount'] + ";";
+    progress += "OverallCount: " + (parseInt(rooms[room]['currentCount']) + parseInt(rooms[room]['previouscount'])) + ";";
+    progress += "Remaining: " + (rooms[room]['goal'] - rooms[room]['currentCount']) + ";";
     for(worker in rooms[room]['workers']) {
-      progress += worker + ": " + rooms[room]['workers'][worker] + "\n";
+      progress += worker + ": " + rooms[room]['workers'][worker] + ",";
     }
     fs.writeFile(__dirname + "\\deadlineProgress"+room+dateFormat(new Date(), "yyyymmddhMMss")+".txt", progress, function(err) {
       if(err) {
