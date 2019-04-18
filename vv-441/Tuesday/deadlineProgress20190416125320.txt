@@ -1,6 +1,0 @@
-Goal: 120
-CurrentCount: 81
-NaN
-Bryan: 35
-Jeremy: 33
-Andrew: 13

@@ -1,1 +1,0 @@
-Goal: 120;CurrentCount: 72;Remaining: 48;Bryan: 23,Jeremy: 32,Andrew: 17,
