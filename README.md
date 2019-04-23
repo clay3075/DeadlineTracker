@@ -2,7 +2,7 @@
 
 A universal deadline tracker that allows a collection of people to connect to one document, log their work, and view the collective progress towards their goal all in real time.
 
-###Features
+### Features
 * Easily adaptable to pre-existing progress tracking efforts
 * Straight forward customizable view of current people working towards the end goal, and the progress they have each made individually
 * Trivial method for users to adjust their progress
