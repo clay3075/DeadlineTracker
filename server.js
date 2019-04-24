@@ -5,9 +5,14 @@ var io = require('socket.io')(http);
 var dateFormat = require('dateformat');
 var path = require('path')
 const fs = require('fs');
+var mongoose = require('mongoose');
+var Room = require('./models/room');
+const config = require("./config");
 
 var rooms = {}
 const HOME_ROOM_ID = "1ed05933-48ee-49ab-9807-2783147623f9"
+
+mongoose.connect(config.DB_ConnectionString, { useNewUrlParser: true }); // connect to our database
 
 app.use('/static', express.static(path.join(__dirname, '/public')))
 
@@ -20,9 +25,9 @@ app.get('/room/:roomName', function (req, res) {
    res.redirect('/static/progresstracker.html?roomID='+req.params.roomName);
 })
 
-http.listen(3000, function () {
-   console.log('Example app listening on port 3000!')
-})
+http.listen(3001, function () {
+   console.log('Example app listening on port 3001!')
+});
 
 io.sockets.on('connection', function (socket) {
   socket.on('newConnection', function(roomID) {
@@ -46,11 +51,7 @@ io.sockets.on('connection', function (socket) {
     roomID = data['roomID'];
     rooms[roomID]['goal'] = data['goal'];
     io.in(roomID).emit("updateGoal", rooms[roomID]['goal']);
-    var tmpRoom = {
-		'room': data['roomID'],
-		'progress': rooms[data['roomID']]['currentCount'],
-		'goal': rooms[data['roomID']]['goal']
-	};
+    var tmpRoom = getCurrentProgress(data['roomID']);
   	io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
   });
   socket.on('updateOverallGoal', function(data) {
@@ -79,11 +80,7 @@ io.sockets.on('connection', function (socket) {
   	rooms[roomID]['currentCount']++;
   	saveProgress(roomID);
   	io.in(roomID).emit('setWorkerCounter', {'worker': worker, 'count': rooms[roomID]['workers'][worker], 'currentCount':rooms[roomID]['currentCount']});
-  	var tmpRoom = {
-		'room': data['roomID'],
-		'progress': rooms[data['roomID']]['currentCount'],
-		'goal': rooms[data['roomID']]['goal']
-	};
+  	var tmpRoom = getCurrentProgress(data['roomID']);
   	io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
   });
   socket.on('minusOne', function(data) {
@@ -94,11 +91,7 @@ io.sockets.on('connection', function (socket) {
   		rooms[roomID]['workers'][worker]--;
   		saveProgress(roomID);
   		io.in(roomID).emit('setWorkerCounter', {'worker': worker, 'count': rooms[roomID]['workers'][worker], 'currentCount':rooms[roomID]['currentCount']});
-	  	var tmpRoom = {
-			'room': data['roomID'],
-			'progress': rooms[data['roomID']]['currentCount'],
-			'goal': rooms[data['roomID']]['goal']
-		};
+	  	var tmpRoom = getCurrentProgress(data['roomID']);
 	  	io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
   	}
   });
@@ -106,16 +99,27 @@ io.sockets.on('connection', function (socket) {
   	socket.join(HOME_ROOM_ID);
   	var tmpRooms = []
   	for (key in rooms) {
-  		var tmpRoom = {
-  			'room': key,
-  			'progress': rooms[key]['currentCount'],
-  			'goal': rooms[key]['goal']
-  		}
+  		var tmpRoom = getCurrentProgress(key);
   		tmpRooms.push(tmpRoom);
   	}
   	socket.emit('loadRooms', tmpRooms);
   });
+  socket.on('closeRoom', function(room) {
+  	delete rooms[room];
+  	io.in(HOME_ROOM_ID).emit('closeRoom', room)
+  });
 });
+
+function getCurrentProgress(room) {
+	var tmpRoom = {
+		'room': room,
+		'progress': rooms[room]['currentCount'],
+		'progressOverall': parseInt(rooms[room]['currentCount']) + parseInt(rooms[room]['previouscount']),
+		'goal': rooms[room]['goal'],
+		'goalOverall': rooms[room]['overallgoal']
+	};
+	return tmpRoom;
+}
 
 function resetRoom(roomID) {
   rooms[roomID] = {};

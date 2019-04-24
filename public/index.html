@@ -15,25 +15,28 @@
 
             socket.on('loadRooms', function(data) {
                 data.forEach(function(x) {
-                    addRoom(x['room'], x['progress'], x['goal']);
+                    addRoom(x['room'], x['progress'], x['goal'], x['progressOverall'], x['goalOverall']);
                 });
             });
 
             socket.on('updateRoomProgress', function(data) {
                 var room = data['room'];
                 var progress = data['progress'];
+                var progressOverall = data['progressOverall'];
+                var goalOverall = data['goalOverall'];
                 var goal = data['goal'];
-                $(`#${room} td:nth-child(3)`).html(generateProgressBar(progress, goal));
+                $(`#${room} td:nth-child(2)`).html(generateProgressBar(progress, goal));
+                $(`#${room} td:nth-child(3)`).html(generateProgressBar(progressOverall, goalOverall));
             });
 
             socket.on('addRoom', function(room) {
                 addRoom(room);
             });
 
-            function addRoom(room, progress = 0, goal = 0) {
-                var padding = "<td></td>";
-                var progressBar = "<td style=\"text-align:center;\">" + generateProgressBar(progress, goal) + "</td>";
-                var html = "<tr id=\"" + room + "\"><td>" + room + " </td>" + padding + progressBar + "</tr>"
+            function addRoom(room, progress = 0, goal = 0, progessOverall = 0, goalOverall = 0) {
+                var progressBarOverall = "<td style=\"text-align:center;\">" + generateProgressBar(progessOverall, goalOverall) + "</td>";
+                var progressBarToday = "<td style=\"text-align:center;\">" + generateProgressBar(progress, goal) + "</td>";
+                var html = "<tr id=\"" + room + "\"><td>" + room + " </td>" + progressBarToday + progressBarOverall + "</tr>"
 
                 $('#rooms').append(html);
                 $('#'+room).click(function() { window.open(`http://${window.location.hostname}:${window.location.port}/room/${room}`); });
@@ -47,12 +50,21 @@
             }
 
             function createRoom() {
-                console.log('createRoom')
                 var roomName = $('#roomName').val();
-                console.log(roomName)
-                // addRoom(roomName);
-                // window.location = `${window.location.hostname}:${window.location.port}/room/${roomName}`
-                window.open(`http://${window.location.hostname}:${window.location.port}/room/${roomName}`);
+                if (isCssIdValid(roomName)) {
+                    $('#roomName').val('');
+                    $('#roomNameValidation').hide();
+                    $('#createRoomModal').modal('hide');
+                    window.open(`http://${window.location.hostname}:${window.location.port}/room/${roomName}`);
+                }
+                else {
+                    $('#roomNameValidation').show();
+                }
+            }
+
+            function isCssIdValid (id) {
+                re = /^[A-Za-z]+[\w\-\:\.]*$/
+                return re.test(id)
             }
         </script>
     </head>
@@ -83,9 +95,9 @@
                         <table class="table" id="roomsTable" >
                             <thead>
                                 <tr>
-                                    <th style="width: 50%">Room</th>
-                                    <th style="width: 20%"></th>
-                                    <th style="width: 30%">Progress</th>
+                                    <th style="width: 40%">Room</th>
+                                    <th style="width: 30%">Todays Progress</th>
+                                    <th style="width: 30%">Overall Progress</th>
                                 </tr>
                             </thead>
                             <tbody id="rooms">
@@ -106,10 +118,13 @@
                   </div>
                   <div class="modal-body">
                     <input type="text" class="form-control" id="roomName">
+                    <div id="roomNameValidation" class="alert alert-danger mt-3" style="display: none;" role="alert">
+                        Must begin with a letter and may be followed by any number of letters, digits, hyphens, underscores, colons, and periods.
+                    </div>
                   </div>
                   <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="createRoom()">Save changes</button>
+                    <button type="button" class="btn btn-primary" onclick="createRoom()">Save changes</button>
                   </div>
                 </div>
               </div>
