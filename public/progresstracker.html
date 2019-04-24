@@ -20,10 +20,15 @@
                 updateOverallGoal(data['overallgoal']);
                 previousCount = parseInt(data['previouscount']);
                 updateOverallCount();
-                for (key in data['workers']) {
-                    addNewWorkerToList(key);
-                    setWorkerCounter(key, data['workers'][key], data['currentCount']);
-                }
+                console.log(data['workers'])
+                data['workers'].forEach(function(worker) {
+                    addNewWorkerToList(worker.name);
+                    setWorkerCounter(worker.name, worker.count, data['currentCount'])
+                });
+                // for (key in data['workers']) {
+                //     addNewWorkerToList(key);
+                //     setWorkerCounter(key, data['workers'][key], data['currentCount']);
+                // }
             });
 
             socket.on('updateGoal', function(goal) {

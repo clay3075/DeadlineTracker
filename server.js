@@ -7,12 +7,16 @@ var path = require('path')
 const fs = require('fs');
 var mongoose = require('mongoose');
 var Room = require('./models/room');
+var Worker = require('./models/worker');
 const config = require("./config");
 
 var rooms = {}
 const HOME_ROOM_ID = "1ed05933-48ee-49ab-9807-2783147623f9"
 
 mongoose.connect(config.DB_ConnectionString, { useNewUrlParser: true }); // connect to our database
+
+// Room.collection.drop();
+// Worker.collection.drop();
 
 app.use('/static', express.static(path.join(__dirname, '/public')))
 
@@ -26,127 +30,149 @@ app.get('/room/:roomName', function (req, res) {
 })
 
 http.listen(3001, function () {
-   console.log('Example app listening on port 3001!')
+   console.log('Listening on port 3001!')
 });
 
 io.sockets.on('connection', function (socket) {
   socket.on('newConnection', function(roomID) {
   	socket.join(roomID);
   	console.log('new connection');
-    
-    if (!rooms.hasOwnProperty(roomID)) {
-      resetRoom(roomID);
-      io.in(HOME_ROOM_ID).emit('addRoom', roomID);
-    }
-  	console.log('rooms:' + Object.keys(rooms));
-  	socket.emit('newConnection', {'currentCount':rooms[roomID]['currentCount'], 'goal':rooms[roomID]['goal'], 'workers':rooms[roomID]['workers'], 'previouscount':rooms[roomID]['previouscount'], 'overallgoal':rooms[roomID]['overallgoal']});
+    Room.findOne( { 'name': roomID }, function(err, room) {
+    	if (room == null) {
+	      room = Room()
+	      room.name = roomID;
+	      room.save();
+	      io.in(HOME_ROOM_ID).emit('addRoom', roomID);
+	    }
+	  	room.workers.find(function(err, workers) {
+	  		socket.emit('newConnection', {'currentCount':room.currentCount, 'goal':room.goal, 'workers':workers, 'previouscount':room.previousCount, 'overallgoal':room.overallGoal});
+	  	});
+    });
   });
 
-  socket.on('reset', function(room) {
+  socket.on('reset', function(roomID) {
     resetRoom(roomID);
     io.in(roomID).emit('resetRoom', roomID);
   });
   socket.on('updateGoal', function (data) {
     console.log(data);
+
     roomID = data['roomID'];
-    rooms[roomID]['goal'] = data['goal'];
-    io.in(roomID).emit("updateGoal", rooms[roomID]['goal']);
-    var tmpRoom = getCurrentProgress(data['roomID']);
-  	io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
+    Room.findOne( { 'name': roomID }, function(err, room) {
+    	room.goal = data['goal'];
+	    room.save();
+	    io.in(roomID).emit("updateGoal", room.goal);
+	    var tmpRoom = getCurrentProgress(data['roomID']);
+	  	io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
+    });
+    
   });
   socket.on('updateOverallGoal', function(data) {
     console.log(data);
     roomID = data['roomID'];
-    rooms[roomID]['overallgoal'] = data['overallgoal'];
-    io.in(roomID).emit("updateOverallGoal", rooms[roomID]['overallgoal']);
+    Room.findOne( { 'name': roomID }, function(err, room) {
+    	room.overallGoal = data['overallgoal'];
+	    room.save();
+	    io.in(roomID).emit("updateOverallGoal", room.overallGoal);
+    });
   });
   socket.on('updatePreviousCount', function(data) {
     console.log(data);
     roomID = data['roomID'];
-    rooms[roomID]['previouscount'] = data['previouscount'];
-    io.in(roomID).emit("updatePreviousCount", rooms[roomID]['previouscount']);
+    Room.findOne( { 'name': roomID }, function(err, room) {
+    	room.previousCount = data['previouscount'];
+	    room.save();
+	    io.in(roomID).emit("updatePreviousCount", room.overallGoal);
+    });
   });
   socket.on('newWorker', function (data) {
+  	console.log('newWorker')
   	console.log(data);
-    var worker = data['worker'];
-    var roomID = data['roomID'];
-  	rooms[roomID]['workers'][worker] = 0;
-    io.in(roomID).emit("newWorker", worker)
+
+    var worker = Worker()
+    worker.name = data['worker'];
+    worker.roomID = data['roomID'];
+  	worker.save();
+    io.in(worker.roomID).emit("newWorker", worker.name);
   });
   socket.on('addOne', function(data) {
-    var worker = data['worker'];
+    var workerName = data['worker'];
     var roomID = data['roomID'];
-  	rooms[roomID]['workers'][worker]++;
-  	rooms[roomID]['currentCount']++;
-  	saveProgress(roomID);
-  	io.in(roomID).emit('setWorkerCounter', {'worker': worker, 'count': rooms[roomID]['workers'][worker], 'currentCount':rooms[roomID]['currentCount']});
-  	var tmpRoom = getCurrentProgress(data['roomID']);
-  	io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
+    Worker.findOne( { 'name': workerName, 'roomID': roomID }, function(err, worker) { 
+    	console.log(worker.room)
+    	Room.findOne( { 'name': roomID }, function(err, workerRoom) {
+    		worker.incrementWorkCount();
+		    workerRoom.incrementCurrentCount(); 
+		    worker.save();
+		    workerRoom.save();
+		  	io.in(roomID).emit('setWorkerCounter', {'worker': worker.name, 'count': worker.count, 'currentCount':workerRoom.currentCount});
+		  	var tmpRoom = getCurrentProgress(workerRoom);
+		  	io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
+    	});
+    });
   });
   socket.on('minusOne', function(data) {
-    var worker = data['worker'];
+    var workerName = data['worker'];
     var roomID = data['roomID'];
-  	if(rooms[roomID]['workers'][worker] > 0) {
-  		rooms[roomID]['currentCount']--;
-  		rooms[roomID]['workers'][worker]--;
-  		saveProgress(roomID);
-  		io.in(roomID).emit('setWorkerCounter', {'worker': worker, 'count': rooms[roomID]['workers'][worker], 'currentCount':rooms[roomID]['currentCount']});
-	  	var tmpRoom = getCurrentProgress(data['roomID']);
-	  	io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
-  	}
+    Worker.findOne( { 'name': workerName, 'roomID': roomID }, function(err, worker) {
+    	Room.findOne( { 'name': roomID }, function(err, workerRoom) {
+    		if(worker.count > 0) {
+		      worker.decrementWorkCount();
+		      workerRoom.decrementCurrentCount();
+		      worker.save();
+		      workerRoom.save();
+		  		io.in(roomID).emit('setWorkerCounter', {'worker': worker.name, 'count': worker.count, 'currentCount':workerRoom.currentCount});
+		      var tmpRoom = getCurrentProgress(data['roomID']);
+		      io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
+		  	}
+    	});
+    });
   });
   socket.on('loadRooms', function(data) {
   	socket.join(HOME_ROOM_ID);
-  	var tmpRooms = []
-  	for (key in rooms) {
-  		var tmpRoom = getCurrentProgress(key);
-  		tmpRooms.push(tmpRoom);
-  	}
-  	socket.emit('loadRooms', tmpRooms);
+  	Room.find( {'archived': false}, function(err, rooms) {
+  		var activeRooms = rooms.map( room => getCurrentProgress(room) )
+  		socket.emit('loadRooms', activeRooms);
+  	});
   });
-  socket.on('closeRoom', function(room) {
-  	delete rooms[room];
-  	io.in(HOME_ROOM_ID).emit('closeRoom', room)
+  socket.on('loadArchivedRooms', function(data) {
+    Room.find( {'archived': true}, function(err, rooms) {
+    	var archivedRooms = rooms.map( room => getCurrentProgress(room) )
+  		socket.emit('loadRooms', archivedRooms);
+    });
+  });
+  socket.on('closeRoom', function(roomID) {
+  	Room.findOne( { 'name': roomID }, function(err, room) {
+  		room.archived = true;
+	    room.save();
+	  	io.in(HOME_ROOM_ID).emit('closeRoom', roomID);
+  	});
   });
 });
 
 function getCurrentProgress(room) {
 	var tmpRoom = {
-		'room': room,
-		'progress': rooms[room]['currentCount'],
-		'progressOverall': parseInt(rooms[room]['currentCount']) + parseInt(rooms[room]['previouscount']),
-		'goal': rooms[room]['goal'],
-		'goalOverall': rooms[room]['overallgoal']
+		'room': room.name,
+		'progress': room.currentCount,
+		'progressOverall': parseInt(room.currentCount) + parseInt(room.previousCount),
+		'goal': room.goal,
+		'goalOverall': room.overallGoal
 	};
 	return tmpRoom;
 }
 
 function resetRoom(roomID) {
-  rooms[roomID] = {};
-  rooms[roomID]['goal'] = 0;
-  rooms[roomID]['overallgoal'] = 0;
-  rooms[roomID]['previouscount'] = 0;
-  rooms[roomID]['currentCount'] = 0;
-  rooms[roomID]['workers'] = {};
+  Room.findOne( { 'name': roomID }, function(err, room) {
+  	room.workers.find(function(err, workers) { 
+  	workers.forEach( function(worker) {
+	    worker.count = 0;
+	    worker.save();
+	})
+  });
+  room.goal = 0;
+  room.previousCount += room.currentCount;
+  room.currentCount = 0;
+  room.save();
+  });
 }
 
-function saveProgress(room) {
-
-	var progress = "Goal: " + rooms[room]['goal'] + ";";
-	progress += "OverallGoal: " + rooms[room]['overallgoal'] + ";";
-	progress += "CurrentCount: " + rooms[room]['currentCount'] + ";";
-	progress += "PreviousCount: " + rooms[room]['previouscount'] + ";";
-	progress += "OverallCount: " + (parseInt(rooms[room]['currentCount']) + parseInt(rooms[room]['previouscount'])) + ";";
-	progress += "Remaining: " + (rooms[room]['goal'] - rooms[room]['currentCount']) + ";";
-	for(worker in rooms[room]['workers']) {
-	  progress += worker + ": " + rooms[room]['workers'][worker] + ",";
-	}
-	fs.writeFile(__dirname + "\\deadlineProgress"+room+dateFormat(new Date(), "yyyymmddhMMss")+".txt", progress, function(err) {
-	  if(err) {
-	      return console.log(err);
-	  }
-
-	  console.log("progress saved!");
-	}); 
-  
-}
