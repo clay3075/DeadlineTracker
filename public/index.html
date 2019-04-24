@@ -70,8 +70,9 @@
     </head>
     <body>
         <style>
-            tr:hover {
+            tbody tr:hover {
                 background-color: lightgrey;
+                cursor: pointer;
             }
         </style>
         <div class="container">
@@ -79,11 +80,11 @@
                 <div class="col-md-10 mt-5">
                     <div class="row">
                     <div class="col-md-10">
-                        <h2>Rooms</h2>
+                        <h2>Deadlines</h2>
                     </div>
                     <div class="col">
                         <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createRoomModal">
-                          Create Room
+                          New Deadline
                         </button>
                     </div>
                 </div>
@@ -95,7 +96,7 @@
                         <table class="table" id="roomsTable" >
                             <thead>
                                 <tr>
-                                    <th style="width: 40%">Room</th>
+                                    <th style="width: 40%">Deadline</th>
                                     <th style="width: 30%">Todays Progress</th>
                                     <th style="width: 30%">Overall Progress</th>
                                 </tr>
