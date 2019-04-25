@@ -4,7 +4,7 @@ socket.emit('loadRooms', null);
 
 socket.on('loadRooms', function(data) {
     data.forEach(function(x) {
-        addRoom(x['room'], x['progress'], x['goal'], x['progressOverall'], x['goalOverall']);
+        addRoom(x['room'], x['progress'], x['goal'], x['progressOverall'], x['goalOverall'], x['archived']);
     });
 });
 
@@ -22,14 +22,21 @@ socket.on('addRoom', function(room) {
     addRoom(room);
 });
 
+socket.on('openRoom', function(room) {
+    $(`#${room}`).remove();
+    addRoom(room);
+});
+
 socket.on('closeRoom', function(room) {
     $(`#${room}`).remove();
 });
 
-function addRoom(room, progress = 0, goal = 0, progessOverall = 0, goalOverall = 0) {
+function addRoom(room, progress = 0, goal = 0, progessOverall = 0, goalOverall = 0, archived = false) {
     var progressBarOverall = "<td class=\"clickable\" style=\"text-align:center;\">" + generateProgressBar(progessOverall, goalOverall) + "</td>";
     var progressBarToday = "<td class=\"clickable\" style=\"text-align:center;\">" + generateProgressBar(progress, goal) + "</td>";
     var archiveButton = `<td><button class="btn btn-danger btn-sm" onclick="archiveRoom('${room}')">Archive</button></td>`;
+    if (archived)
+        archiveButton = `<td><button class="btn btn-success btn-sm" onclick="openRoom('${room}')">Re-Open</button></td>`;
     var html = "<tr id=\"" + room + "\"><td class=\"clickable\">" + room + " </td>" + progressBarToday + progressBarOverall + archiveButton + "</tr>"
 
     $('#rooms').append(html);
@@ -62,4 +69,16 @@ function createRoom() {
 function archiveRoom(room) {
     console.log(room)
     socket.emit('closeRoom', room);
+}
+
+function loadArchivedRooms() {
+    socket.emit('loadArchivedRooms');
+    $('#btnLoadArchivedRooms').html("Hide Archived Rooms");
+    $('#btnLoadArchivedRooms').click(function() {
+        location.reload();
+    });
+}
+
+function openRoom(room) {
+    socket.emit('openRoom', room);
 }

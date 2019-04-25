@@ -199,7 +199,7 @@ io.sockets.on('connection', function (socket) {
   socket.on('loadArchivedRooms', function(data) {
     Room.find( {'archived': true}, function(err, rooms) {
     	var archivedRooms = rooms.map( room => getCurrentProgress(room) )
-  		socket.emit('loadArchivedRooms', archivedRooms);
+  		socket.emit('loadRooms', archivedRooms);
     });
   });
   socket.on('closeRoom', function(roomID) {
@@ -207,6 +207,16 @@ io.sockets.on('connection', function (socket) {
   		room.archived = true;
 	    room.save();
 	  	io.in(HOME_ROOM_ID).emit('closeRoom', roomID);
+	  	io.in(roomID).emit('resetRoom');
+  	}).catch(function(err) {
+    	console.log(err);
+    });
+  });
+  socket.on('openRoom', function(roomID) {
+  	Room.findByName(roomID).then(function(room) {
+  		room.archived = false;
+	    room.save();
+	  	io.in(HOME_ROOM_ID).emit('openRoom', roomID);
 	  	io.in(roomID).emit('resetRoom');
   	}).catch(function(err) {
     	console.log(err);
@@ -220,7 +230,8 @@ function getCurrentProgress(room) {
 		'progress': room.currentCount,
 		'progressOverall': parseInt(room.currentCount) + parseInt(room.previousCount),
 		'goal': room.goal,
-		'goalOverall': room.overallGoal
+		'goalOverall': room.overallGoal,
+		'archived': room.archived
 	};
 	return tmpRoom;
 }
