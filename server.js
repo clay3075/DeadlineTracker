@@ -181,7 +181,7 @@ io.sockets.on('connection', function (socket) {
 		      worker.save();
 		      workerRoom.save();
 		  	  io.in(roomID).emit('setWorkerCounter', {'worker': worker.name, 'count': worker.count, 'currentCount':workerRoom.currentCount});
-		      var tmpRoom = getCurrentProgress(data['roomID']);
+		      var tmpRoom = getCurrentProgress(workerRoom);
 		      io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
 		  	}
     	}).catch(function(err) {
