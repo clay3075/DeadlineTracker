@@ -9,3 +9,4 @@ A universal deadline tracker that allows a collection of people to connect to on
 * All changes to the document happen in real time and do not require any page reloads to view updated information
 * Simple chart for displaying goals, current progress, and the remaining work to be done
 * Supports rooms so that multiple tracking operations can be performed all at the same time
+* Supports room archiving

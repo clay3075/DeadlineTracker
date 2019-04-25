@@ -82,6 +82,7 @@ function loadArchivedRooms() {
             $(row).remove();
         });
         $('#btnLoadArchivedRooms').unbind("click");
+        $('#btnLoadArchivedRooms').html("Show Archived Rooms");
         $('#btnLoadArchivedRooms').click(loadArchivedRooms);
     });
 }
