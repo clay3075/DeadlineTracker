@@ -53,6 +53,28 @@ io.sockets.on('connection', function (socket) {
     });
   });
 
+  socket.on('approveRoomName', function(roomName, callback) {
+  	var response = { 'approved':true, 'errorMessage': '' };
+  	Room.findByName(roomName).then(function(room) {
+  		console.log(room);
+  		if (room) {
+  			response.approved = false;
+  			response.errorMessage = "Room name has already been used.";
+  		} else {
+  			if (!isCssIdValid(roomName)) {
+  				response.approved = false;
+  				response.errorMessage = "Must begin with a letter and may be followed by any number of letters, digits, hyphens, underscores, colons, and periods.";
+  			}
+  		}
+  		callback(response);
+  	}).catch(function(err) {
+  		console.log(err);
+  		response.approved = false;
+  		response.errorMessage = err.message;
+  		callback(response);
+    });
+  });
+
   socket.on('reset', function(roomID) {
   	Room.findByName(roomID).then(function(room) {
   		if(room.archived)
@@ -182,12 +204,14 @@ io.sockets.on('connection', function (socket) {
     });
   });
   socket.on('closeRoom', function(roomID) {
-  	Room.findOne( { 'name': roomID }, function(err, room) {
+  	Room.findByName(roomID).then(function(room) {
   		room.archived = true;
 	    room.save();
 	  	io.in(HOME_ROOM_ID).emit('closeRoom', roomID);
-	  	io.in(roomID).emit('resetRoom', null);
-  	});
+	  	io.in(roomID).emit('resetRoom');
+  	}).catch(function(err) {
+    	console.log(err);
+    });
   });
 });
 
@@ -213,5 +237,10 @@ function resetRoom(room) {
 	room.previousCount += room.currentCount;
 	room.currentCount = 0;
 	room.save();
+}
+
+function isCssIdValid (id) {
+    re = /^[A-Za-z]+[\w\-\:\.]*$/
+    return re.test(id)
 }
 

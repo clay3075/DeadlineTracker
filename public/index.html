@@ -40,7 +40,7 @@
             function addRoom(room, progress = 0, goal = 0, progessOverall = 0, goalOverall = 0) {
                 var progressBarOverall = "<td class=\"clickable\" style=\"text-align:center;\">" + generateProgressBar(progessOverall, goalOverall) + "</td>";
                 var progressBarToday = "<td class=\"clickable\" style=\"text-align:center;\">" + generateProgressBar(progress, goal) + "</td>";
-                var archiveButton = `<td><button class="btn btn-danger btn-sm" onclick="archiveRoom(${room})">Archive</button></td>`;
+                var archiveButton = `<td><button class="btn btn-danger btn-sm" onclick="archiveRoom('${room}')">Archive</button></td>`;
                 var html = "<tr id=\"" + room + "\"><td class=\"clickable\">" + room + " </td>" + progressBarToday + progressBarOverall + archiveButton + "</tr>"
 
                 $('#rooms').append(html);
@@ -56,24 +56,23 @@
 
             function createRoom() {
                 var roomName = $('#roomName').val();
-                if (isCssIdValid(roomName)) {
-                    $('#roomName').val('');
-                    $('#roomNameValidation').hide();
-                    $('#createRoomModal').modal('hide');
-                    window.open(`http://${window.location.hostname}:${window.location.port}/room/${roomName}`);
-                }
-                else {
-                    $('#roomNameValidation').show();
-                }
+                socket.emit('approveRoomName', roomName, function(response) {
+                    if (response.approved) {
+                        $('#roomName').val('');
+                        $('#roomNameValidation').hide();
+                        $('#createRoomModal').modal('hide');
+                        window.open(`http://${window.location.hostname}:${window.location.port}/room/${roomName}`);
+                    } else {
+                        $('#roomNameValidation').html('Server Error: ' + response.errorMessage);
+                        $('#roomNameValidation').show();
+                    }
+
+                });
             }
 
             function archiveRoom(room) {
+                console.log(room)
                 socket.emit('closeRoom', room);
-            }
-
-            function isCssIdValid (id) {
-                re = /^[A-Za-z]+[\w\-\:\.]*$/
-                return re.test(id)
             }
         </script>
     </head>
@@ -130,7 +129,7 @@
                   <div class="modal-body">
                     <input type="text" class="form-control" id="roomName">
                     <div id="roomNameValidation" class="alert alert-danger mt-3" style="display: none;" role="alert">
-                        Must begin with a letter and may be followed by any number of letters, digits, hyphens, underscores, colons, and periods.
+                        
                     </div>
                   </div>
                   <div class="modal-footer">
