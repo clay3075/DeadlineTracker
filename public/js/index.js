@@ -1,19 +1,20 @@
+/*jshint esversion: 6 */
 var socket = io();
 
 socket.emit('loadRooms', null);
 
 socket.on('loadRooms', function(data) {
     data.forEach(function(x) {
-        addRoom(x['room'], x['progress'], x['goal'], x['progressOverall'], x['goalOverall'], x['archived']);
+        addRoom(x.room, x.progress, x.goal, x.progressOverall, x.goalOverall, x.archived);
     });
 });
 
 socket.on('updateRoomProgress', function(data) {
-    var room = data['room'];
-    var progress = data['progress'];
-    var progressOverall = data['progressOverall'];
-    var goalOverall = data['goalOverall'];
-    var goal = data['goal'];
+    var room = data.room;
+    var progress = data.progress;
+    var progressOverall = data.progressOverall;
+    var goalOverall = data.goalOverall;
+    var goal = data.goal;
     $(`#${room} td:nth-child(2)`).html(generateProgressBar(progress, goal));
     $(`#${room} td:nth-child(3)`).html(generateProgressBar(progressOverall, goalOverall));
 });
@@ -37,7 +38,7 @@ function addRoom(room, progress = 0, goal = 0, progessOverall = 0, goalOverall =
     var archiveButton = `<td><button class="btn btn-danger btn-sm" onclick="archiveRoom('${room}')">Archive</button></td>`;
     if (archived)
         archiveButton = `<td><button class="btn btn-success btn-sm" onclick="openRoom('${room}')">Re-Open</button></td>`;
-    var html = "<tr id=\"" + room + "\"><td class=\"clickable\">" + room + " </td>" + progressBarToday + progressBarOverall + archiveButton + "</tr>"
+    var html = "<tr id=\"" + room + "\"><td class=\"clickable\">" + room + " </td>" + progressBarToday + progressBarOverall + archiveButton + "</tr>";
 
     $('#rooms').append(html);
     $(`#${room} .clickable`).click(function() { window.open(`http://${window.location.hostname}:${window.location.port}/room/${room}`); });
@@ -47,7 +48,7 @@ function generateProgressBar(progress, goal) {
     var percentRemaining = progress > 0 && goal > 0 ? (progress/goal)*100 : 0;
     percentRemaining = percentRemaining.toFixed(2);
     var progressBar = `<div class=\"progress\"><div class=\"progress-bar\" role=\"progressbar\" style=\"width: ${percentRemaining}%;\" aria-valuenow=\"${progress}\" aria-valuemin=\"0\" aria-valuemax=\"${goal}\">${percentRemaining}%</div></div>`;
-    return progressBar
+    return progressBar;
 }
 
 function createRoom() {
@@ -67,13 +68,14 @@ function createRoom() {
 }
 
 function archiveRoom(room) {
-    console.log(room)
+    console.log(room);
     socket.emit('closeRoom', room);
 }
 
 function loadArchivedRooms() {
     socket.emit('loadArchivedRooms');
     $('#btnLoadArchivedRooms').html("Hide Archived Rooms");
+    $('#btnLoadArchivedRooms').attr('onclick', null);
     $('#btnLoadArchivedRooms').click(function() {
         location.reload();
     });

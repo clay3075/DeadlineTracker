@@ -7,17 +7,17 @@ var archived = false;
 socket.emit('newConnection', roomName);
 
 socket.on('newConnection', function(data) {
-    updateGoal(data['goal']);
-    updateCurrentCount(data['currentCount']);
-    updateOverallGoal(data['overallgoal']);
-    previousCount = parseInt(data['previouscount']);
+    updateGoal(data.goal);
+    updateCurrentCount(data.currentCount);
+    updateOverallGoal(data.overallgoal);
+    previousCount = parseInt(data.previouscount);
     updateOverallCount();
-    console.log(data['workers'])
-    data['workers'].forEach(function(worker) {
+    console.log(data.workers);
+    data.workers.forEach(function(worker) {
         addNewWorkerToList(worker.name);
-        setWorkerCounter(worker.name, worker.count, data['currentCount'])
+        setWorkerCounter(worker.name, worker.count, data.currentCount);
     });
-    archived = data['archived'];
+    archived = data.archived;
     if(archived) {
         alert("Room has been archived and can no longer be edited.");
         disableAllElements();
@@ -44,7 +44,7 @@ socket.on('resetRoom', function(roomID) {
 });
 
 socket.on('setWorkerCounter', function(data) {
-    setWorkerCounter(data['worker'], data['count'], data['currentCount']);
+    setWorkerCounter(data.worker, data.count, data.currentCount);
 });
 
 socket.on('newWorker', function (worker) {
@@ -157,7 +157,7 @@ function addNewWorkerToList(worker) {
     var minusButton = "<td><button class=\"btn counterbtn\" onclick='minusButtonClicked(\"" + worker + "\")'>-</button></td>";
     var counterInput = "<td style=\"text-align:center;\"><span id='" + worker + "Counter'>0</span></td>";
     var plusButton = "<td><button class=\"btn counterbtn\" onclick='plusButtonClicked(\"" + worker + "\")'>+</button></td>";
-    var html = "<tr><td>" + worker + " </td>" + minusButton + counterInput + plusButton + "</tr>"
+    var html = "<tr><td>" + worker + " </td>" + minusButton + counterInput + plusButton + "</tr>";
 
     $('#counters').append(html);
 }
@@ -175,7 +175,6 @@ function showSuccessMessage(message) {
 
 function Reset() {
     if (confirm("Are you sure you know what you are doing?")) {
-        console.log("puff")
         socket.emit("reset", roomName);
     } 
 }
@@ -188,7 +187,7 @@ function slowToggle() {
     root.find('tbody tr').each(function(i, tr) {
         setTimeout(function() {
             $(tr).toggle();
-        }, i*50)
+        }, i*50);
     });
 }
 
