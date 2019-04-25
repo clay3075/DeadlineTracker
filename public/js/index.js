@@ -77,7 +77,9 @@ function loadArchivedRooms() {
     $('#btnLoadArchivedRooms').html("Hide Archived Rooms");
     $('#btnLoadArchivedRooms').attr('onclick', null);
     $('#btnLoadArchivedRooms').click(function() {
-        location.reload();
+        $('tr:contains("Re-Open")').each(function (i,row) {
+            $(row).remove();
+        });
     });
 }
 
