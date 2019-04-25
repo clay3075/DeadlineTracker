@@ -53,6 +53,8 @@ io.sockets.on('connection', function (socket) {
   socket.on('reset', function(roomID) {
     resetRoom(roomID);
     io.in(roomID).emit('resetRoom', roomID);
+    var tmpRoom = getCurrentProgress(roomID);
+	io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
   });
   socket.on('updateGoal', function (data) {
     console.log(data);
@@ -60,9 +62,9 @@ io.sockets.on('connection', function (socket) {
     roomID = data['roomID'];
     Room.findOne( { 'name': roomID }, function(err, room) {
     	room.goal = data['goal'];
-	    room.save();
+    	room.save();
 	    io.in(roomID).emit("updateGoal", room.goal);
-	    var tmpRoom = getCurrentProgress(data['roomID']);
+	    var tmpRoom = getCurrentProgress(room);
 	  	io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
     });
     
@@ -74,6 +76,8 @@ io.sockets.on('connection', function (socket) {
     	room.overallGoal = data['overallgoal'];
 	    room.save();
 	    io.in(roomID).emit("updateOverallGoal", room.overallGoal);
+	    var tmpRoom = getCurrentProgress(room);
+		io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
     });
   });
   socket.on('updatePreviousCount', function(data) {
@@ -83,6 +87,8 @@ io.sockets.on('connection', function (socket) {
     	room.previousCount = data['previouscount'];
 	    room.save();
 	    io.in(roomID).emit("updatePreviousCount", room.overallGoal);
+	    var tmpRoom = getCurrentProgress(room);
+		io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
     });
   });
   socket.on('newWorker', function (data) {
@@ -121,7 +127,7 @@ io.sockets.on('connection', function (socket) {
 		      workerRoom.decrementCurrentCount();
 		      worker.save();
 		      workerRoom.save();
-		  		io.in(roomID).emit('setWorkerCounter', {'worker': worker.name, 'count': worker.count, 'currentCount':workerRoom.currentCount});
+		  	  io.in(roomID).emit('setWorkerCounter', {'worker': worker.name, 'count': worker.count, 'currentCount':workerRoom.currentCount});
 		      var tmpRoom = getCurrentProgress(data['roomID']);
 		      io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
 		  	}
@@ -138,7 +144,7 @@ io.sockets.on('connection', function (socket) {
   socket.on('loadArchivedRooms', function(data) {
     Room.find( {'archived': true}, function(err, rooms) {
     	var archivedRooms = rooms.map( room => getCurrentProgress(room) )
-  		socket.emit('loadRooms', archivedRooms);
+  		socket.emit('loadArchivedRooms', archivedRooms);
     });
   });
   socket.on('closeRoom', function(roomID) {

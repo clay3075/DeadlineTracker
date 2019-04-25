@@ -25,10 +25,6 @@
                     addNewWorkerToList(worker.name);
                     setWorkerCounter(worker.name, worker.count, data['currentCount'])
                 });
-                // for (key in data['workers']) {
-                //     addNewWorkerToList(key);
-                //     setWorkerCounter(key, data['workers'][key], data['currentCount']);
-                // }
             });
 
             socket.on('updateGoal', function(goal) {
