@@ -11,6 +11,7 @@
             var socket = io();
             var roomName = document.location.href.substr(document.location.href.lastIndexOf('=') + 1);
             var previousCount = 0;
+            var archived = false;
 
             socket.emit('newConnection', roomName);
 
@@ -25,6 +26,11 @@
                     addNewWorkerToList(worker.name);
                     setWorkerCounter(worker.name, worker.count, data['currentCount'])
                 });
+                archived = data['archived'];
+                if(archived) {
+                    alert("Room has been archived and can no longer be edited.");
+                    disableAllElements();
+                }
             });
 
             socket.on('updateGoal', function(goal) {
@@ -192,6 +198,10 @@
                         $(tr).toggle();
                     }, i*50)
                 });
+            }
+
+            function disableAllElements() {
+                toggleElements($(document.body).find("*"), true);
             }
 
         </script>

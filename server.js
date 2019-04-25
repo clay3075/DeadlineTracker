@@ -44,8 +44,9 @@ io.sockets.on('connection', function (socket) {
 	      room.save();
 	      io.in(HOME_ROOM_ID).emit('addRoom', roomID);
 	    }
+
 	  	room.workers.find(function(err, workers) {
-	  		socket.emit('newConnection', {'currentCount':room.currentCount, 'goal':room.goal, 'workers':workers, 'previouscount':room.previousCount, 'overallgoal':room.overallGoal});
+	  		socket.emit('newConnection', {'currentCount':room.currentCount, 'goal':room.goal, 'workers':workers, 'previouscount':room.previousCount, 'overallgoal':room.overallGoal, 'archived':room.archived});
 	  	});
     });
   });
@@ -152,6 +153,7 @@ io.sockets.on('connection', function (socket) {
   		room.archived = true;
 	    room.save();
 	  	io.in(HOME_ROOM_ID).emit('closeRoom', roomID);
+	  	io.in(roomID).emit('resetRoom', null);
   	});
   });
 });
