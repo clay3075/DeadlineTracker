@@ -76,10 +76,13 @@ function loadArchivedRooms() {
     socket.emit('loadArchivedRooms');
     $('#btnLoadArchivedRooms').html("Hide Archived Rooms");
     $('#btnLoadArchivedRooms').attr('onclick', null);
-    $('#btnLoadArchivedRooms').click(function() {
+    $('#btnLoadArchivedRooms').unbind("click");
+    $('#btnLoadArchivedRooms').click(function () {
         $('tr:contains("Re-Open")').each(function (i,row) {
             $(row).remove();
         });
+        $('#btnLoadArchivedRooms').unbind("click");
+        $('#btnLoadArchivedRooms').click(loadArchivedRooms);
     });
 }
 
