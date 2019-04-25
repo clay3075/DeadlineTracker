@@ -1,0 +1,8 @@
+.counterbtn {
+    width: 35px;
+    height: 35px;
+    padding-top: 2px;
+}
+.table > tbody > tr > td {
+     vertical-align: middle;
+}

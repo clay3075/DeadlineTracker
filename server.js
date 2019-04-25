@@ -25,7 +25,6 @@ app.get('/', function (req, res) {
 });
 
 app.get('/room/:roomName', function (req, res) {
-	console.log(req.params.roomName)
    res.redirect('/static/progresstracker.html?roomID='+req.params.roomName);
 })
 
