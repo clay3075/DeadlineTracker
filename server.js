@@ -93,7 +93,7 @@ io.sockets.on('connection', function(socket) {
             }
             resetRoom(room);
             io.in(roomID).emit('resetRoom', roomID);
-            var tmpRoom = getCurrentProgress(roomID);
+            var tmpRoom = getCurrentProgress(room);
             io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
         }).catch(function(err) {
             console.log(err);
