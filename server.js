@@ -123,7 +123,10 @@ io.sockets.on('connection', function(socket) {
             if (room.archived)
                 return;
             room.overallGoal = data.overallgoal;
+            if (room.goal > room.overallGoal || room.goal == 0) 
+                room.goal = room.overallGoal;
             room.save();
+            io.in(roomID).emit("updateGoal", room.goal);
             io.in(roomID).emit("updateOverallGoal", room.overallGoal);
             var tmpRoom = getCurrentProgress(room);
             io.in(HOME_ROOM_ID).emit('updateRoomProgress', tmpRoom);
@@ -274,8 +277,8 @@ function resetRoom(room) {
             worker.save();
         });
     });
-    room.goal = 0;
     room.previousCount += room.currentCount;
+    room.goal = room.overallGoal - room.previousCount;
     room.currentCount = 0;
     room.save();
 }
